@@ -20,17 +20,19 @@
 (struct schedule (local? seconds minutes hours days months week-days)
   #:transparent
   #:property prop:evt (lambda (s)
-                        (define timestamp (* (schedule-next s) 1000))
-                        (handle-evt (alarm-evt timestamp) (λ (_)
-                                                            (values s timestamp)))))
+                        (define timestamp
+                          (* (schedule-next s) 1000))
+                        (handle-evt
+                         (alarm-evt timestamp)
+                         (λ (_) (values s timestamp)))))
 
 (define (make-schedule local? seconds minutes hours days months week-days)
-  (let ([seconds (reduce-field 'seconds 0 59 seconds)]
-        [minutes (reduce-field 'minutes 0 59 minutes)]
-        [hours (reduce-field 'hours 0 23 hours)]
-        [days (reduce-field 'days 1 31 days)]
-        [months (reduce-field 'months 1 12 months)]
-        [week-days (reduce-field 'week-days 1 7 week-days)])
+  (let ([seconds   (reduce-field 'seconds   0 59 seconds)]
+        [minutes   (reduce-field 'minutes   0 59 minutes)]
+        [hours     (reduce-field 'hours     0 23 hours)]
+        [days      (reduce-field 'days      1 31 days)]
+        [months    (reduce-field 'months    1 12 months)]
+        [week-days (reduce-field 'week-days 1 7  week-days)])
     (unless (or (eq? days '*)
                 (eq? months '*)
                 (pair? week-days)
@@ -86,12 +88,12 @@
 
     (define next-day (next days day))
     (define month-durations (get-month-durations year))
-    (define next-month-duration (list-ref month-durations (sub1 month)))
+    (define month-duration (list-ref month-durations (sub1 month)))
     (unless (and (=  next-day day)
-                 (<= next-day next-month-duration))
+                 (<= next-day month-duration))
       (define-values (next-year next-month)
         (if (or (< next-day day)
-                (> next-day next-month-duration))
+                (> next-day month-duration))
             (+month year month)
             (values year month)))
       (esc (schedule-next s (find-seconds 0 0 0 next-day next-month next-year local?))))

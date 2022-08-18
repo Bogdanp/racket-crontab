@@ -29,7 +29,7 @@
               (if deadline-evt
                   (handle-evt
                    deadline-evt
-                   (λ (_)
+                   (lambda (_)
                      (loop #f)))
                   (handle-evt
                    schedule
