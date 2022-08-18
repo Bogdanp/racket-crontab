@@ -34,7 +34,7 @@
                   (handle-evt
                    schedule
                    (lambda (_ timestamp)
-                     (define deadline (alarm-evt (+ timestamp 1000)))
+                     (define deadline (alarm-evt (+ (* timestamp 1000) 1000)))
                      (with-handlers ([exn:fail? (λ (e) ((error-display-handler) (exn-message e) e))])
                        (proc timestamp))
                      (loop deadline)))))))))))

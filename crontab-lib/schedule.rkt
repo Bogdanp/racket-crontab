@@ -21,9 +21,9 @@
   #:transparent
   #:property prop:evt (lambda (s)
                         (define timestamp
-                          (* (schedule-next s) 1000))
+                          (schedule-next s))
                         (handle-evt
-                         (alarm-evt timestamp)
+                         (alarm-evt (* timestamp 1000))
                          (λ (_) (values s timestamp)))))
 
 (define (make-schedule local? seconds minutes hours days months week-days)
