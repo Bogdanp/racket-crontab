@@ -18,7 +18,6 @@
   [schedule->string (-> schedule? string?)]))
 
 (struct schedule (local? seconds minutes hours days months week-days)
-  #:transparent
   #:property prop:evt (lambda (s)
                         (define timestamp
                           (schedule-next s))
