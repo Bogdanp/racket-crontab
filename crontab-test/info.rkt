@@ -1,10 +1,12 @@
 #lang info
 
 (define collection "tests")
-
-(define deps '())
+(define deps
+  '("base"
+    "crontab-lib"))
 (define build-deps
   '("base"
+    "crontab-lib"
     "rackunit-lib"))
-
-(define update-implies '("crontab-lib"))
+(define implies
+  '("crontab-lib"))
