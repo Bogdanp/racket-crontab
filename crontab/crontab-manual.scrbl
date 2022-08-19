@@ -48,9 +48,9 @@ Racket using @tt{cron}-like syntax.
   @defproc[(parse-schedule [s string?]
                            [local-time? boolean? #t]) schedule?]
 )]{
-  Parses the cron represented by @racket[s] and returns a schedule.
-  Supports the same syntax as BSD cron, with the following
-  differences:
+  Parses the cron schedule specification represented by @racket[s] and
+  returns a schedule.  Supports the same syntax as BSD cron, with the
+  following differences:
 
   @itemlist[
     @item{``@"@"'' commands are not supported}
@@ -65,11 +65,12 @@ Racket using @tt{cron}-like syntax.
   zone if @racket[local-time?] is @racket[#t] and UTC otherwise.
 
   Schedule values are @reftech{synchronizable events}.  A schedule is
-  ready for synchronization after @racket[current-seconds] is less
-  than the value of @racket[(schedule-next s)] as of the moment the
-  event is synchronized on.  The @reftech{synchronization result} of a
-  schedule is the schedule itself and the timestamp it became ready
-  for synchronization at.
+  ready for synchronization when the value of
+  @racket[(current-seconds)] is less than or equal to the value of
+  @racket[(schedule-next s)] as of the moment the event is
+  synchronized on.  The @reftech{synchronization result} of a schedule
+  is the schedule itself and the timestamp it became ready for
+  synchronization at.
 
   @examples[
     (require crontab racket/date)
@@ -78,8 +79,11 @@ Racket using @tt{cron}-like syntax.
       (date->string (seconds->date ts) #t)))
 
     (code:line)
-    (define now (current-seconds))
-    (~date (current-seconds))
+    (define now
+     (find-seconds 30 21 10 19 8 2022))
+    (code:line)
+
+    (~date now)
     (~date (schedule-next (parse-schedule "* * * * * *") now))
     (~date (schedule-next (parse-schedule "* * * * *") now))
     (~date (schedule-next (parse-schedule "0 5-23/5 * * *") now))
@@ -87,14 +91,22 @@ Racket using @tt{cron}-like syntax.
     (~date (schedule-next (parse-schedule "* * 29 2 *") now))
 
     (code:line)
+    (let ([s (parse-schedule "0 * * * *")])
+     (for/fold ([ts now])
+               ([_ (in-range 10)])
+      (define new-ts
+       (schedule-next s ts))
+      (begin0 (add1 new-ts)
+       (displayln (~date new-ts)))))
+
+    (code:line)
     (sync (parse-schedule "* * * * * *"))
   ]
 }
 
-@defproc[(schedule-next [s schedule?]
-                        [start-timestamp exact-integer? (current-seconds)]) exact-integer?]{
-  Returns a timestamp representing the first timestamp that matches
-  the schedule including and after @racket[start-timestamp].
+@defproc[(schedule-next [s schedule?] [start-timestamp exact-integer? (current-seconds)]) exact-integer?]{
+  Returns a timestamp representing the first moment that matches the
+  schedule including and after @racket[start-timestamp].
 }
 
 @defproc[(schedule->string [s schedule?]) string?]{
