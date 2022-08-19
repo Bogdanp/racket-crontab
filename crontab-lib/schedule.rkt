@@ -14,6 +14,7 @@
  (contract-out
   [schedule? (-> any/c boolean?)]
   [parse-schedule (->* (string?) (boolean?) schedule?)]
+  [schedule-matches? (-> schedule? exact-integer? boolean?)]
   [schedule-next (->* (schedule?) (exact-integer?) exact-integer?)]
   [schedule->string (-> schedule? string?)]))
 
@@ -32,8 +33,8 @@
         [days      (reduce-field 'days      1 31 days)]
         [months    (reduce-field 'months    1 12 months)]
         [week-days (reduce-field 'week-days 1 7  week-days)])
-    (unless (or (eq? days '*)
-                (eq? months '*)
+    (unless (or (any? days)
+                (any? months)
                 (pair? week-days)
                 (dates-satisfiable? months days))
       (error 'schedule "unsatisfiable day & month constraints~n days: ~a~n months: ~a"
@@ -41,16 +42,32 @@
              (~field months)))
     (schedule local? seconds minutes hours days months week-days)))
 
+(define (schedule-matches? s timestamp)
+  (match-define (schedule local? seconds minutes hours days months week-days) s)
+  (match-define (date second minute hour day month year week-day- _ _ _)
+    (seconds->date timestamp local?))
+  (define week-day
+    (if (= week-day- 0) 7 week-day-))
+  (and
+   (= second (next seconds second))
+   (= minute (next minutes minute))
+   (= hour (next hours hour))
+   (= month (next months month))
+   (if (or (any? days)
+           (any? week-days))
+       (and (= day (next days day)) (= week-day (next week-days week-day)))
+       (or  (= day (next days day)) (= week-day (next week-days week-day))))))
+
 (define (schedule-next s [timestamp (current-seconds)])
   (let/ec esc
     (match-define (schedule local? seconds minutes hours days months week-days) s)
     #;(println (date->string (seconds->date timestamp local?) #t))
     (match-define (date second minute hour day month year week-day- _ _ _)
       (seconds->date timestamp local?))
-    (unless (or (eq? days '*)
-                (eq? week-days '*))
+    (unless (or (any? days)
+                (any? week-days))
       (define w-timestamp (schedule-next (struct-copy schedule s [days '*]) timestamp))
-      (define d-timestamp (if (dates-satisfiable? months days)
+      (define d-timestamp (if (dates-satisfiable? (if (any? months) all-months months) days)
                               (schedule-next (struct-copy schedule s [week-days '*]) timestamp)
                               +inf.0))
       (esc (if (< w-timestamp d-timestamp) w-timestamp d-timestamp)))
@@ -118,12 +135,15 @@
 
 (define (next cs n)
   (cond
-    [(eq? cs '*) n]
+    [(any? cs) n]
     [(for/first ([m (in-list cs)] #:when (>= m n)) m)]
     [else (car cs)]))
 
 (define (~field v)
-  (if (eq? v '*) "*" (string-join (map number->string v) ",")))
+  (if (any? v) "*" (string-join (map number->string v) ",")))
+
+(define (any? v)
+  (eq? v '*))
 
 
 ;; validation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -141,6 +161,9 @@
        (sort (remove-duplicates rs) <)]
 
       [`(* . ,_) '*]
+
+      [`((range ,_ ,_ 0) . ,_)
+       (error 'schedule "range step must be positive~n  field: ~a" who)]
 
       [`((range * * ,step) . ,rst)
        (loop rst (append (build-range lo hi step) rs))]
@@ -164,6 +187,9 @@
 
 (define (build-range lo hi [step 1])
   (for/list ([n (in-inclusive-range lo hi step)]) n))
+
+(define all-months
+  (build-range 1 12))
 
 
 ;; parsing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

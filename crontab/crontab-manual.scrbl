@@ -104,6 +104,10 @@ Racket using @tt{cron}-like syntax.
   ]
 }
 
+@defproc[(schedule-matches? [s schedule?] [timestamp exact-integer?]) boolean?]{
+  Returns @racket[#t] when @racket[timestamp] matches the schedule.
+}
+
 @defproc[(schedule-next [s schedule?] [start-timestamp exact-integer? (current-seconds)]) exact-integer?]{
   Returns a timestamp representing the first moment that matches the
   schedule including and after @racket[start-timestamp].
