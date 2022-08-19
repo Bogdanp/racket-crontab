@@ -52,15 +52,15 @@
   (gen:let ([second (gen:integer-in 0 59)]
             [minute (gen:integer-in 0 59)]
             [hour (gen:integer-in 0 23)]
-            [d&m&y gen:day&month&year])
-    (apply find-seconds second minute hour d&m&y)))
+            [d-m-y gen:day&month&year])
+    (apply find-seconds second minute hour d-m-y)))
 
 (define gen:schedule
-  (gen:let ([d&m&y gen:day&month&year]
+  (gen:let ([d-m-y gen:day&month&year]
             [minutes (gen:constraint 0 59)]
             [hours (gen:constraint 0 23)]
-            [days (gen:constraint 1 (car d&m&y))]
-            [months (gen:constraint 1 (cadr d&m&y))]
+            [days (gen:constraint 1 (car d-m-y))]
+            [months (gen:constraint 1 (cadr d-m-y))]
             [week-days (gen:constraint 1 7)])
     (define schedule-str
       (format "~a ~a ~a ~a ~a" minutes hours days months week-days))
