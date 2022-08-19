@@ -7,6 +7,7 @@
 (define build-deps
   '("base"
     "crontab-lib"
+    "rackcheck-lib"
     "rackunit-lib"))
 (define implies
   '("crontab-lib"))

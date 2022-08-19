@@ -1,9 +1,70 @@
 #lang racket/base
 
-(require crontab/schedule
+(require crontab/private/date
+         crontab/schedule
+         rackcheck
          racket/date
          racket/match
+         racket/string
          rackunit)
+
+(define (gen:range-constraint lo hi [step 1])
+  (gen:let ([rng-lo (gen:integer-in lo hi)]
+            [rng-hi (gen:integer-in rng-lo hi)])
+    (format "~a-~a/~a" rng-lo rng-hi step)))
+
+(define (gen:constraint lo hi [lists? #t])
+  (define types
+    (let ([types '(* single range range/step)])
+      (if lists? (cons 'list types) types)))
+  (gen:let ([type (gen:one-of types)]
+            [constraint (case type
+                          [(*)
+                           (gen:const "*")]
+                          [(single)
+                           (gen:map (gen:integer-in lo hi) number->string)]
+                          [(range)
+                           (gen:range-constraint lo hi)]
+                          [(range/step)
+                           (gen:let ([step (gen:integer-in lo hi)]
+                                     [constraint (gen:range-constraint lo hi (if (zero? step) 1 step))])
+                             constraint)]
+                          [(list)
+                           (gen:map (gen:list
+                                     #:max-length 3
+                                     (gen:delay (gen:constraint lo hi #f)))
+                                    (λ (constraints)
+                                      (if (null? constraints)
+                                          "*"
+                                          (string-join constraints ","))))])])
+    constraint))
+
+(define gen:day&month&year
+  (gen:let ([day (gen:integer-in 1 31)]
+            [month (gen:integer-in 1 12)]
+            [year (gen:integer-in 1970 2030)])
+    (define durations (get-month-durations year))
+    (define month-duration (list-ref durations (sub1 month)))
+    (define day* (if (> day month-duration) month-duration day))
+    (list day* month year)))
+
+(define gen:timestamp
+  (gen:let ([second (gen:integer-in 0 59)]
+            [minute (gen:integer-in 0 59)]
+            [hour (gen:integer-in 0 23)]
+            [d&m&y gen:day&month&year])
+    (apply find-seconds second minute hour d&m&y)))
+
+(define gen:schedule
+  (gen:let ([d&m&y gen:day&month&year]
+            [minutes (gen:constraint 0 59)]
+            [hours (gen:constraint 0 23)]
+            [days (gen:constraint 1 (car d&m&y))]
+            [months (gen:constraint 1 (cadr d&m&y))]
+            [week-days (gen:constraint 1 7)])
+    (define schedule-str
+      (format "~a ~a ~a ~a ~a" minutes hours days months week-days))
+    (parse-schedule schedule-str)))
 
 (define (utcdate year month day [hours 0] [minutes 0] [seconds 0])
   (seconds->date (find-seconds seconds minutes hours day month year #f) #f))
@@ -29,7 +90,7 @@
        #rx"expected a value between 0 and 23"
        (λ () (parse-schedule "* 44 * * *")))))
 
-   (test-case "scheduling"
+   (test-case "scheduling (example tests)"
      (define tests
        `(("* * * * *"
           (((2022 5  29 12 30 29) . (2022 5  29 12 31 0 ))))
@@ -85,7 +146,20 @@
          (define res-date (seconds->date (schedule-next s (date->seconds in #f)) #f))
          (define res-date-str (date->string res-date #t))
          (define out-date-str (date->string out #t))
-         (check-equal? res-date-str out-date-str (format "~a # ~a (~a)" schedule-str (add1 idx) in-date-str)))))))
+         (check-equal? res-date-str out-date-str (format "~a # ~a (~a)" schedule-str (add1 idx) in-date-str)))))
+
+   (test-case "scheduling is gapless"
+     (check-property
+      (make-config #:tests (if (getenv "PLT_PKG_BUILD_SERVICE") 5 50))
+      (property ([s gen:schedule]
+                 [ts gen:timestamp])
+        (define next-ts (schedule-next s ts))
+        (define start-ts
+          (let ([ts (+ ts 60)])
+            (- ts (modulo ts 60))))
+        #;(println `(,(schedule->string s) ,(quotient (- next-ts start-ts) 60)))
+        (for ([ts (in-range start-ts next-ts 60)])
+          (check-false (schedule-matches? s ts))))))))
 
 (module+ test
   (require rackunit/text-ui)
