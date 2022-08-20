@@ -18,25 +18,26 @@
     (let ([types '(* single range range/step)])
       (if lists? (cons 'list types) types)))
   (gen:let ([type (gen:one-of types)]
-            [constraint (case type
-                          [(*)
-                           (gen:const "*")]
-                          [(single)
-                           (gen:map (gen:integer-in lo hi) number->string)]
-                          [(range)
-                           (gen:range-constraint lo hi)]
-                          [(range/step)
-                           (gen:let ([step (gen:integer-in lo hi)]
-                                     [constraint (gen:range-constraint lo hi (if (zero? step) 1 step))])
-                             constraint)]
-                          [(list)
-                           (gen:map (gen:list
-                                     #:max-length 3
-                                     (gen:delay (gen:constraint lo hi #f)))
-                                    (λ (constraints)
-                                      (if (null? constraints)
-                                          "*"
-                                          (string-join constraints ","))))])])
+            [constraint
+             (case type
+               [(*)
+                (gen:const "*")]
+               [(single)
+                (gen:map (gen:integer-in lo hi) number->string)]
+               [(range)
+                (gen:range-constraint lo hi)]
+               [(range/step)
+                (gen:let ([step (gen:integer-in lo hi)]
+                          [constraint (gen:range-constraint lo hi (if (zero? step) 1 step))])
+                  constraint)]
+               [(list)
+                (gen:map (gen:list
+                          #:max-length 3
+                          (gen:delay (gen:constraint lo hi #f)))
+                         (λ (constraints)
+                           (if (null? constraints)
+                               "*"
+                               (string-join constraints ","))))])])
     constraint))
 
 (define gen:day&month&year
@@ -150,14 +151,21 @@
 
    (test-case "scheduling is gapless"
      (check-property
-      (make-config #:tests (if (getenv "PLT_PKG_BUILD_SERVICE") 5 50))
-      (property ([s gen:schedule]
-                 [ts gen:timestamp])
+      (make-config
+       #:tests (if (getenv "PLT_PKG_BUILD_SERVICE") 5 100)
+       #:deadline (+ (current-inexact-milliseconds)
+                     (* 5 60 1000)))
+      (property gapless
+        ([s gen:schedule]
+         [ts gen:timestamp])
         (define next-ts (schedule-next s ts))
         (define start-ts
           (let ([ts (+ ts 60)])
             (- ts (modulo ts 60))))
-        #;(println `(,(schedule->string s) ,(quotient (- next-ts start-ts) 60)))
+        #;
+        (printf "schedule: ~a, iterations: ~a~n"
+                (schedule->string s)
+                (quotient (- next-ts start-ts) 60))
         (for ([ts (in-range start-ts next-ts 60)])
           (check-false (schedule-matches? s ts))))))))
 
