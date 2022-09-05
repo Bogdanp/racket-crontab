@@ -102,8 +102,9 @@ seconds) it became ready for synchronization at.
 @defproc[(parse-schedule [s string?]
                          [local-time? boolean? #t]) schedule?]{
   Parses the @tt{cron} schedule represented by @racket[s] and returns
-  a @tech{schedule}.  Supports the same syntax as BSD @tt{cron}, with
-  the following differences:
+  a @tech{schedule}.  Supports the same syntax as
+  @hyperlink["https://man.openbsd.org/crontab.5"]{BSD @tt{cron}},
+  with the following differences:
 
   @itemlist[
     @item{``@"@"'' commands are not supported,}
