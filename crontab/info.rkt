@@ -12,4 +12,4 @@
 (define implies
   '("crontab-lib"))
 (define scribblings
-  '(("crontab-manual.scrbl")))
+  '(("crontab-manual.scrbl" () ("Web Development"))))
