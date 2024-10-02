@@ -1,8 +1,8 @@
 #lang racket/base
 
 (require (for-syntax racket/base
-                     syntax/parse)
-         racket/contract
+                     syntax/parse/pre)
+         racket/contract/base
          racket/date
          racket/list
          racket/match
@@ -13,9 +13,9 @@
 (provide
  (contract-out
   [schedule? (-> any/c boolean?)]
-  [parse-schedule (->* (string?) (boolean?) schedule?)]
+  [parse-schedule (->* [string?] [boolean?] schedule?)]
   [schedule-matches? (-> schedule? exact-integer? boolean?)]
-  [schedule-next (->* (schedule?) (exact-integer?) exact-integer?)]
+  [schedule-next (->* [schedule?] [exact-integer?] exact-integer?)]
   [schedule->string (-> schedule? string?)]))
 
 (struct schedule (local? seconds minutes hours days months week-days)
