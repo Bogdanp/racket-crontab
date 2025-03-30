@@ -167,7 +167,15 @@
                 (schedule->string s)
                 (quotient (- next-ts start-ts) 60))
         (for ([ts (in-range start-ts next-ts 60)])
-          (check-false (schedule-matches? s ts))))))))
+          (check-false (schedule-matches? s ts))))))
+
+   (test-case "daylight savings"
+     (check-equal?
+      (schedule-next
+       (parse-schedule "0 * * * *")
+       ;; 1 second before DST on March 30th, 2025
+       1743296399)
+      1743296400))))
 
 (module+ test
   (require rackunit/text-ui)
