@@ -49,6 +49,11 @@ Racket using @tt{cron}-like syntax.
     (sleep 5)
     (stop)
   ]
+
+  The spawned threads log information about what is currently being
+  run to the ``crontab'' topic.
+
+  @history[#:changed "0.2" @elem{Extended logging.}]
 }
 
 @subsection{Schedules}
