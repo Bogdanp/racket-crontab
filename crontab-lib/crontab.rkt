@@ -21,30 +21,33 @@
       (for/list ([entry (in-list table)])
         (define schedule (parse-schedule (car entry)))
         (define proc (cdr entry))
+        (define proc-name (object-name proc))
         (thread
-         (lambda ()
-           (let loop ([deadline-evt #f])
-             (sync
-              (handle-evt
-               (thread-receive-evt)
-               void)
-              (if deadline-evt
-                  (handle-evt
-                   deadline-evt
-                   (lambda (_)
-                     (loop #f)))
-                  (handle-evt
-                   schedule
-                   (lambda (_ timestamp)
-                     (define t0 (current-inexact-monotonic-milliseconds))
-                     (define proc-name (object-name proc))
-                     (define deadline (alarm-evt (+ (* timestamp 1000) 1000)))
-                     (log-crontab-debug "executing cron procedure ~s" proc-name)
-                     (with-handlers ([exn:fail? (λ (e) ((error-display-handler) (exn-message e) e))])
-                       (proc timestamp))
-                     (define dt (- (current-inexact-monotonic-milliseconds) t0))
-                     (log-crontab-debug "cron procedure ~s completed after ~sms" proc-name dt)
-                     (loop deadline)))))))))))
+         (procedure-rename
+          (lambda ()
+            (let loop ([deadline-evt #f])
+              (sync
+               (handle-evt
+                (thread-receive-evt)
+                void)
+               (if deadline-evt
+                   (handle-evt
+                    deadline-evt
+                    (lambda (_)
+                      (loop #f)))
+                   (handle-evt
+                    schedule
+                    (lambda (_ timestamp)
+                      (define t0 (current-inexact-monotonic-milliseconds))
+                      (define deadline (alarm-evt (+ (* timestamp 1000) 1000)))
+                      (log-crontab-debug "executing cron procedure ~s" proc-name)
+                      (with-handlers ([exn:fail? (λ (e) ((error-display-handler) (exn-message e) e))])
+                        (proc timestamp))
+                      (define dt (- (current-inexact-monotonic-milliseconds) t0))
+                      (log-crontab-debug "cron procedure ~s completed after ~sms" proc-name dt)
+                      (loop deadline)))))))
+          (string->symbol
+           (format "crontab:~a" proc-name)))))))
   (lambda ()
     (log-crontab-debug "stopping cron threads")
     (for ([t (in-list thds)])
