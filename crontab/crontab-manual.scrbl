@@ -56,6 +56,13 @@ Racket using @tt{cron}-like syntax.
   @history[#:changed "0.2" @elem{Extended logging.}]
 }
 
+@defparam[current-crontab-schedule schedule schedule?]{
+  For the dynamic extent of a crontab procedure, this parameter holds
+  the parsed @tech{schedule} for that crontab entry.
+
+  @history[#:added "0.3"]
+}
+
 @subsection{Schedules}
 
 @deftech{Schedules} constrain the components of a timestamp to match

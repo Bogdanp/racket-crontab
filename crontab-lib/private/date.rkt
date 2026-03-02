@@ -40,7 +40,7 @@
       (values year month (add1 day))))
 
 (define (+days year month day n)
-  (for/fold ([y year] [m month] [d day])
+  (for/fold ([y year] [m month] [d day]) ;; noqa
             ([_ (in-range n)])
     (+day year month day)))
 

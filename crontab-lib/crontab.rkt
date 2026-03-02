@@ -2,25 +2,30 @@
 
 (require (for-syntax racket/base
                      syntax/parse/pre)
+         racket/match
          "schedule.rkt")
 
 (provide
+ current-crontab-schedule
  crontab)
 
 (define-logger crontab)
+
+(define current-crontab-schedule
+  (make-parameter #f))
 
 (define-syntax (crontab stx)
   (syntax-parse stx
     [(_ [schedule:expr proc:expr] ...+)
      #'(make-crontab `((,schedule . ,proc) ...))]))
 
-(define (make-crontab table)
+(define (make-crontab table) ;; noqa
   (define cust (make-custodian))
   (define thds
     (parameterize ([current-custodian cust])
       (for/list ([entry (in-list table)])
-        (define schedule (parse-schedule (car entry)))
-        (define proc (cdr entry))
+        (match-define (cons schedule-str proc) entry)
+        (define schedule (parse-schedule schedule-str))
         (define proc-name (object-name proc))
         (thread
          (procedure-rename
@@ -42,7 +47,8 @@
                       (define deadline (alarm-evt (+ (* timestamp 1000) 1000)))
                       (log-crontab-debug "executing cron procedure ~s" proc-name)
                       (with-handlers ([exn:fail? (λ (e) ((error-display-handler) (exn-message e) e))])
-                        (proc timestamp))
+                        (parameterize ([current-crontab-schedule schedule])
+                          (proc timestamp)))
                       (define dt (- (current-inexact-monotonic-milliseconds) t0))
                       (log-crontab-debug "cron procedure ~s completed after ~sms" proc-name dt)
                       (loop deadline)))))))
